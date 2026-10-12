@@ -68,6 +68,11 @@ button.mini{padding:5px 10px;font-size:12px;border-radius:6px}
    </select></div>
  </div>
  <div class="ck" id="ckIncluirT"><label><input type="checkbox" id="incluirTerreno" checked> Preencher também os dados do terreno</label></div>
+ <div class="acoes" style="margin-top:8px">
+  <button class="sec" onclick="document.getElementById('loadJsonFile').click()">📂 Continuar vistoria (carregar dados.json)</button>
+  <input type="file" id="loadJsonFile" accept="application/json,.json" style="display:none" onchange="carregarJson(this)">
+ </div>
+ <div class="dica" id="dicaCarregar" style="display:none">Vistoria carregada com sucesso. Complete os campos em branco (pendências) e gere o novo JSON — as fotos já carregadas não precisam ser reenviadas.</div>
  <div class="dica">Regras: registre apenas o que você vê — nunca causas. Não sabe? Deixe em branco (nunca zero ou N/A). Campos em branco viram pendências visíveis no relatório.</div>
 </section>
 
@@ -415,6 +420,111 @@ function imprimir(){
  var pa=document.getElementById('printArea');
  pa.innerHTML='<h2 style="color:#1f4e79">RVI — Resumo da vistoria</h2><p>'+DOC.om+' · '+DOC.data+' · Tipo: '+DOC.tipo+'</p>'+document.getElementById('revisao').innerHTML;
  window.print();
+}
+
+// ---- carregar JSON (retomar vistoria) ----
+function carregarJson(input){
+ var f=input.files[0]; if(!f)return;
+ var r=new FileReader();
+ r.onload=function(e){
+  var d;
+  try{ d=JSON.parse(e.target.result); }catch(err){ alert('Arquivo inválido: não é um dados.json gerado por esta página.'); return; }
+  try{ aplicarJson(d); }catch(err){ alert('Não consegui aplicar os dados: '+err.message); return; }
+  document.getElementById('dicaCarregar').style.display='block';
+  alert('Vistoria carregada. Complete as pendências e gere o novo JSON.');
+ };
+ r.readAsText(f); input.value='';
+}
+function setVal(id,v){ var e=document.getElementById(id); if(e&&v!==undefined&&v!==null)e.value=v; }
+function setChk(id,v){ var e=document.getElementById(id); if(e)e.checked=!!v; }
+function setSel(id,v,outroId,outroVal){
+ var e=document.getElementById(id); if(!e)return;
+ var opts=Array.prototype.map.call(e.options,function(o){return o.value||o.text});
+ if(v&&opts.indexOf(v)>-1){ e.value=v; }
+ else if(v){ e.value='Outro'; var ob=document.getElementById(outroId); if(ob){ob.style.display='block';ob.value=v;} }
+}
+function aplicarJson(d){
+ // configuração
+ setVal('om', d.om||'SERINFRA-NT');
+ if(d.data){ var p=d.data.split('/'); if(p.length===3) document.getElementById('data').value=p[2]+'-'+p[1]+'-'+p[0]; }
+ if(d.tipo==='benfeitoria'){ document.getElementById('tipo').value='benfeitoria'; }
+ tipoMudou();
+ // terreno
+ var t=d.terreno||null;
+ if(t){
+  document.getElementById('incluirTerreno').checked=true;
+  setVal('t_endereco',t.endereco); setVal('t_cidade_estado',t.cidade_estado); setVal('t_tombo',t.tombo); setVal('t_rip',t.rip);
+  setVal('t_lat',t.lat); setVal('t_lon',t.lon);
+  setSel('t_classificacao',t.classificacao,'t_classificacao_outro',t.classificacao==='Outro'?t.classificacao_outro:t.classificacao);
+  setSel('t_posicao',t.posicao,'t_posicao_outro',t.posicao==='Outro'?t.posicao_outro:t.posicao);
+  setSel('t_forma',t.forma,'t_forma_outro',t.forma==='Outro'?t.forma_outro:t.forma);
+  setSel('t_divisas',t.divisas,'t_divisas_outro',t.divisas==='Outro'?t.divisas_outro:t.divisas);
+  setSel('t_topografia',t.topografia,'t_topografia_outro',t.topografia==='Outro'?t.topografia_outro:t.topografia);
+  setSel('t_ocupacao',t.ocupacao,'t_ocupacao_outro',t.ocupacao==='Outro'?t.ocupacao_outro:t.ocupacao);
+  setSel('t_nivel',t.nivel,'t_nivel_outro',t.nivel==='Outro'?t.nivel_outro:t.nivel);
+  setSel('t_solo',t.solo,'t_solo_outro',t.solo==='Outro'?t.solo_outro:t.solo);
+  setSel('t_zoneamento',t.zoneamento,'t_zoneamento_outro',t.zoneamento==='Outro'?t.zoneamento_outro:t.zoneamento);
+  (t.servicos_urbanos||[]).forEach(function(s){ var i=SVC.indexOf(s); if(i>-1) document.getElementById('t_servicos').querySelectorAll('input.svc')[i].checked=true; });
+  (t.melhoramentos||[]).forEach(function(s){ var i=MELH.indexOf(s); if(i>-1) document.getElementById('t_melhoramentos').querySelectorAll('input.mel')[i].checked=true; });
+  setVal('t_melhoramentos_outro',(t.melhoramentos_outro||[]).join(', '));
+  setVal('t_conf_frente',t.conf_frente); setVal('t_conf_fundos',t.conf_fundos); setVal('t_conf_lateral_esquerda',t.conf_lateral_esquerda); setVal('t_conf_lateral_direita',t.conf_lateral_direita);
+  setVal('t_dim_frente',t.dim_frente); setVal('t_dim_prof_esquerda',t.dim_prof_esquerda); setVal('t_dim_prof_direita',t.dim_prof_direita); setVal('t_dim_fundos',t.dim_fundos);
+  fotos.t=[];
+  (t.fotos||[]).forEach(function(f){ fotos.t.push({nome:f.nome||'foto.jpeg',b64:f.base64||f.b64||'',legenda:f.legenda||''}); });
+  renderFotos('t');
+  if(d.croqui_terreno&&d.croqui_terreno.base64){ fotos.croqui_t={nome:d.croqui_terreno.nome||'croqui.jpeg',b64:d.croqui_terreno.base64}; var box=document.getElementById('croqui_t'); box.innerHTML='<div class="foto-item"><img src="data:image/jpeg;base64,'+fotos.croqui_t.b64+'"><div style="flex:1"><b>Croqui anexado</b></div></div>'; }
+ }
+ // benfeitorias
+ (d.benfeitorias||[]).forEach(function(b,bi){
+  while(nBenf<bi+1) addBenfSilencioso();
+  var n=bi+1;
+  setVal('b'+n+'_identificacao',b.identificacao); setVal('b'+n+'_codigo',b.codigo); setVal('b'+n+'_descricao',b.descricao);
+  setVal('b'+n+'_idade_aparente',b.idade_aparente); setVal('b'+n+'_idade',b.idade); setChk('b'+n+'_idade_nao_conhecida',b.idade_nao_conhecida);
+  setVal('b'+n+'_coordenadas',b.coordenadas);
+  setSel('b'+n+'_classificacao',b.classificacao||b.classificacao_outro,'b'+n+'_classificacao_outro',b.classificacao_outro);
+  setVal('b'+n+'_area_principal',b.area_principal); setVal('b'+n+'_area_acessoria',b.area_acessoria); setVal('b'+n+'_area_total',b.area_total);
+  setVal('b'+n+'_pavimentos',b.pavimentos); setVal('b'+n+'_comodos',b.comodos); setVal('b'+n+'_quartos',b.quartos); setVal('b'+n+'_banheiros',b.banheiros);
+  setVal('b'+n+'_salas',b.salas); setVal('b'+n+'_dependencias',b.dependencias); setVal('b'+n+'_saloes',b.saloes); setVal('b'+n+'_cozinhas',b.cozinhas);
+  setVal('b'+n+'_dim_frente',b.dim_frente); setVal('b'+n+'_dim_lateral_esquerda',b.dim_lateral_esquerda); setVal('b'+n+'_dim_lateral_direita',b.dim_lateral_direita); setVal('b'+n+'_dim_fundos',b.dim_fundos);
+  setSel('b'+n+'_estrutura',b.estrutura||b.estrutura_outro,'b'+n+'_estrutura_outro',b.estrutura_outro);
+  setSel('b'+n+'_cobertura',b.cobertura||b.cobertura_outro,'b'+n+'_cobertura_outro',b.cobertura_outro);
+  setSel('b'+n+'_revestimento',b.revestimento||b.revestimento_outro,'b'+n+'_revestimento_outro',b.revestimento_outro);
+  setSel('b'+n+'_padrao',b.padrao||b.padrao_outro,'b'+n+'_padrao_outro',b.padrao_outro);
+  setVal('b'+n+'_conservacao_geral',b.conservacao_geral);
+  setVal('b'+n+'_info_complementares',b.info_complementares);
+  SISTEMAS.forEach(function(s,i){ var v=(b.avaliacao||{})[s]; if(v){ var se=document.getElementById('b'+n+'_av_'+i); if(se)se.value=v; } });
+  var tb=document.getElementById('b'+n+'_manifestacoes');
+  (b.manifestacoes||[]).forEach(function(m){
+   var mi=MANS.indexOf(m.manifestacao), ei=ELEMS.indexOf(m.elemento);
+   if(mi>-1&&ei>-1){ var c=tb.querySelector('input[data-m="'+mi+'"][data-e="'+ei+'"]'); if(c)c.checked=true; }
+  });
+  if((b.manifestacoes||[]).length){ var last=b.manifestacoes[b.manifestacoes.length-1]; if(last.observacao) setVal('b'+n+'_man_obs',last.observacao); }
+  fotos['fotos_b'+n]=[];
+  (b.fotos||[]).forEach(function(f){ fotos['fotos_b'+n].push({nome:f.nome||'foto.jpeg',b64:f.base64||f.b64||'',legenda:f.legenda||''}); });
+  renderFotos('b'+n);
+  if(d.croqui_benfeitoria&&d.croqui_benfeitoria.base64){ fotos['croqui_b'+n]={nome:d.croqui_benfeitoria.nome||'croqui.jpeg',b64:d.croqui_benfeitoria.base64}; var box2=document.getElementById('croqui_b'+n); box2.innerHTML='<div class="foto-item"><img src="data:image/jpeg;base64,'+fotos['croqui_b'+n].b64+'"><div style="flex:1"><b>Croqui anexado</b></div></div>'; }
+ });
+ DOC=null;
+}
+function addBenfSilencioso(){
+ nBenf++;
+ var tpl=document.getElementById('tpl-benf').innerHTML.split('__N__').join(String(nBenf));
+ document.getElementById('listaBenf').insertAdjacentHTML('beforeend',tpl);
+ var av=document.getElementById('b'+nBenf+'_avaliacao');
+ SISTEMAS.forEach(function(s,i){
+  var l=document.createElement('label');l.style.fontWeight='400';
+  l.innerHTML='<span style="display:inline-block;width:150px;font-weight:600;color:#595959">'+s+'</span> <select id="b'+nBenf+'_av_'+i+'"><option value="">—</option>'+LETRAS.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select>';
+  av.appendChild(l);
+ });
+ var tb=document.getElementById('b'+nBenf+'_manifestacoes');
+ var tr=document.createElement('tr');
+ tr.innerHTML='<th style="text-align:left">Manifestação</th>'+ELEMS.map(function(e){return '<th title="'+e+'">'+e.split(' ')[0]+'</th>'}).join('');
+ tb.appendChild(tr);
+ MANS.forEach(function(m,mi){
+  var row=document.createElement('tr');
+  row.innerHTML='<td>'+m+'</td>'+ELEMS.map(function(e,ei){return '<td><input type="checkbox" data-m="'+mi+'" data-e="'+ei+'"></td>'}).join('');
+  tb.appendChild(row);
+ });
 }
 </script>
 </body>
