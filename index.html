@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vistoria RVI — SERINFRA-NT</title>
+<style>
+:root{--azul:#1f4e79;--azul2:#5b9bd5;--cinza:#595959;--fundo:#f4f6f8;--borda:#d8dee4;--verde:#2e7d32;--verm:#b71c1c}
+*{box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;margin:0;background:var(--fundo);color:#222;font-size:15px}
+header{background:var(--azul);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:9}
+header h1{margin:0;font-size:17px}header p{margin:2px 0 0;font-size:12px;opacity:.85}
+main{max-width:760px;margin:0 auto;padding:12px 12px 90px}
+section{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px;margin:12px 0}
+h2{font-size:15px;color:var(--azul);margin:0 0 10px;border-bottom:2px solid var(--azul2);padding-bottom:6px}
+h3{font-size:13.5px;color:var(--azul);margin:14px 0 6px}
+label{display:block;font-size:12.5px;color:var(--cinza);margin:8px 0 3px;font-weight:600}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:9px;border:1px solid var(--borda);border-radius:7px;font-size:15px;background:#fff}
+textarea{min-height:70px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.checks label,.ck label{display:flex;align-items:center;gap:7px;font-weight:400;color:#222;font-size:14px;margin:3px 0}
+.ck{margin:6px 0}
+.dica{font-size:12px;color:var(--cinza);background:#eef4fa;border-left:3px solid var(--azul2);padding:7px 9px;border-radius:0 6px 6px 0;margin:6px 0}
+.help{font-size:12px;color:#444;background:#fffbe8;border:1px solid #e8d98a;border-radius:6px;padding:8px;margin:6px 0}
+.foto-item{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--borda);border-radius:8px;padding:7px;margin:6px 0;background:#fafbfc}
+.foto-item img{width:64px;height:64px;object-fit:cover;border-radius:6px}
+.foto-item input{flex:1}
+table.man{border-collapse:collapse;width:100%;font-size:11px}
+table.man th,table.man td{border:1px solid var(--borda);padding:4px;text-align:center}
+table.man th{background:var(--azul);color:#fff;font-size:10px}
+table.man td:first-child{text-align:left;font-weight:600;min-width:150px}
+.scroll{overflow-x:auto;margin:8px 0}
+button{background:var(--azul);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:600;cursor:pointer}
+button.sec{background:#fff;color:var(--azul);border:1.5px solid var(--azul)}
+button.mini{padding:5px 10px;font-size:12px;border-radius:6px}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.barra{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid var(--azul);padding:9px 12px;display:flex;gap:8px;justify-content:center;z-index:9}
+.pend{color:var(--verm);font-weight:600}
+.ok{color:var(--verde);font-weight:600}
+.rev-bloco{border:1px solid var(--borda);border-radius:8px;padding:9px;margin:8px 0;font-size:13.5px}
+.rev-bloco b{color:var(--azul)}
+#printArea{display:none}
+@media print{
+ body{background:#fff}header,.barra,button,section{display:none!important}
+ #printArea{display:block!important;font-size:12px}
+ #printArea table{width:100%;border-collapse:collapse}#printArea td,#printArea th{border:1px solid #999;padding:4px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>Assistente de Vistoria RVI — SERINFRA-NT</h1>
+ <p>Preenchimento guiado no celular · funciona offline · os dados ficam só no seu aparelho até você enviar o JSON</p>
+</header>
+<main>
+
+<section>
+ <h2>0. Configuração da vistoria</h2>
+ <div class="grid3">
+  <div><label>OM responsável</label><input type="text" id="om" value="SERINFRA-NT"></div>
+  <div><label>Data do cabeçalho</label><input type="date" id="data"></div>
+  <div><label>Tipo de vistoria</label>
+   <select id="tipo" onchange="tipoMudou()">
+    <option value="terreno">Terreno</option>
+    <option value="benfeitoria">Benfeitoria</option>
+   </select></div>
+ </div>
+ <div class="ck" id="ckIncluirT"><label><input type="checkbox" id="incluirTerreno" checked> Preencher também os dados do terreno</label></div>
+ <div class="dica">Regras: registre apenas o que você vê — nunca causas. Não sabe? Deixe em branco (nunca zero ou N/A). Campos em branco viram pendências visíveis no relatório.</div>
+</section>
+
+<section id="secTerreno">
+ <h2>1. Terreno</h2>
+ <h3>Identificação</h3>
+ <div class="grid">
+  <div><label>Endereço (logradouro e número)</label><input type="text" id="t_endereco"></div>
+  <div><label>Cidade/Estado</label><input type="text" id="t_cidade_estado" placeholder="Ex.: NATAL/RN"></div>
+  <div><label>Tombo *</label><input type="text" id="t_tombo" placeholder="Ex.: RN.000-000"></div>
+  <div><label>RIP</label><input type="text" id="t_rip"></div>
+  <div><label>Latitude</label><input type="text" id="t_lat" placeholder="-23.514002"></div>
+  <div><label>Longitude</label><input type="text" id="t_lon" placeholder="-46.630371"></div>
+ </div>
+ <div class="dica">Coordenadas: no celular, botão compartilhar do Google Maps → copiar → cole no campo de endereço que eu extrai; ou digite lat/lon.</div>
+ <h3>Características</h3>
+ <div class="grid">
+  <div><label>Classificação</label><select id="t_classificacao" onchange="outro(this)"><option value="">— em branco —</option><option>Lote urbano</option><option>Aeroporto</option><option>Gleba rural</option><option>Terreno industrial</option><option>Gleba urbanizável</option><option value="Outro">Outro</option></select><input type="text" id="t_classificacao_outro" style="display:none" placeholder="Especifique"></div>
+  <div><label>Posição</label><select id="t_posicao" onchange="outro(this)"><option value="">— em branco —</option><option>Meio de quadra</option><option>Mais de uma frente</option><option>Esquina</option><option>Quadra inteira</option><option value="Outro">Outro</option></select><input type="text" id="t_posicao_outro" style="display:none"></div>
+  <div><label>Forma</label><select id="t_forma" onchange="outro(this)"><option value="">— em branco —</option><option>Regular</option><option>Irregular</option><option>Poligonal</option><option>Triangular</option><option value="Outro">Outro</option></select><input type="text" id="t_forma_outro" style="display:none"></div>
+  <div><label>Divisas</label><select id="t_divisas" onchange="outro(this)"><option value="">— em branco —</option><option>Muro</option><option>Cerca</option><option>Divisa com prédio</option><option value="Outro">Outro</option></select><input type="text" id="t_divisas_outro" style="display:none" placeholder="Ex.: gradeado (será alinhado a Cerca)"></div>
+  <div><label>Topografia</label><select id="t_topografia" onchange="outro(this)"><option value="">— em branco —</option><option>Plano</option><option>Ondulado</option><option>Montanhoso</option><option value="Outro">Outro</option></select><input type="text" id="t_topografia_outro" style="display:none"></div>
+  <div><label>Ocupação</label><select id="t_ocupacao" onchange="outro(this)"><option value="">— em branco —</option><option>Terra nua</option><option>Existência de benfeitorias</option><option value="Outro">Outro</option></select><input type="text" id="t_ocupacao_outro" style="display:none"></div>
+  <div><label>Nível do terreno</label><select id="t_nivel" onchange="outro(this)"><option value="">— em branco —</option><option>Abaixo do nível da rua</option><option>No nível da rua</option><option>Acima do nível da rua</option><option value="Outro">Outro</option></select><input type="text" id="t_nivel_outro" style="display:none"></div>
+  <div><label>Estado do solo</label><select id="t_solo" onchange="outro(this)"><option value="">— em branco —</option><option>Firme</option><option>Brejoso</option><option>Inundável</option><option>Rochoso</option><option>Arenoso</option><option value="Outro">Outro</option></select><input type="text" id="t_solo_outro" style="display:none"></div>
+ </div>
+ <h3>Serviços urbanos disponíveis (marque todos)</h3>
+ <div class="checks" id="t_servicos"></div>
+ <h3>Melhoramentos locais (marque todos)</h3>
+ <div class="checks" id="t_melhoramentos"></div>
+ <label>Outros melhoramentos (separados por vírgula)</label><input type="text" id="t_melhoramentos_outro">
+ <h3>Zoneamento municipal</h3>
+ <select id="t_zoneamento" onchange="outro(this)" style="max-width:320px"><option value="">— em branco —</option><option>Residencial</option><option>Comercial</option><option>Industrial</option><option value="Outro">Outro</option></select>
+ <input type="text" id="t_zoneamento_outro" style="display:none">
+ <h3>Confrontantes</h3>
+ <div class="grid">
+  <div><label>Frente</label><input type="text" id="t_conf_frente"></div>
+  <div><label>Fundos</label><input type="text" id="t_conf_fundos"></div>
+  <div><label>Lateral esquerda</label><input type="text" id="t_conf_lateral_esquerda"></div>
+  <div><label>Lateral direita</label><input type="text" id="t_conf_lateral_direita"></div>
+ </div>
+ <h3>Dimensões (m)</h3>
+ <div class="grid">
+  <div><label>Frente (m)</label><input type="text" id="t_dim_frente"></div>
+  <div><label>Profundidade esquerda (m)</label><input type="text" id="t_dim_prof_esquerda"></div>
+  <div><label>Profundidade direita (m)</label><input type="text" id="t_dim_prof_direita"></div>
+  <div><label>Fundos (m)</label><input type="text" id="t_dim_fundos"></div>
+ </div>
+ <div class="dica">Nunca calcule medidas a partir da área — só registre o que foi medido/informado. "Duas laterais com 50 m" só se registra com confirmação.</div>
+ <h3>Fotografias do terreno (máx. 6)</h3>
+ <div class="dica">Ordem: frontal, lateral direita, lateral esquerda, fundos, detalhes.</div>
+ <input type="file" accept="image/*" multiple onchange="addFotos(this,'t')">
+ <div id="fotos_t"></div>
+ <h3>Croqui (planta de situação)</h3>
+ <input type="file" accept="image/*" onchange="addCroqui(this,'t')">
+ <div id="croqui_t"></div>
+</section>
+
+<section id="secBenfeitorias" style="display:none">
+ <h2>2. Benfeitorias</h2>
+ <div id="listaBenf"></div>
+ <button class="sec" onclick="addBenf()">+ Adicionar benfeitoria</button>
+</section>
+
+<section>
+ <h2>3. Revisão e geração</h2>
+ <div id="revisao"><div class="dica">Toque em "Gerar revisão" para conferir tudo antes de baixar o JSON.</div></div>
+ <div class="ck"><label><input type="checkbox" id="autorizo"> Autorizo o envio com os campos em branco indicados acima (pendências)</label></div>
+ <div class="acoes">
+  <button onclick="gerar()">Gerar revisão</button>
+  <button onclick="baixarJson()">Baixar dados.json</button>
+  <button class="sec" onclick="imprimir()">Imprimir resumo</button>
+ </div>
+ <div class="dica" style="margin-top:10px"><b>Depois de baixar:</b> envie o arquivo <b>dados.json</b> para a Chefe da Seção de Patrimônio (WhatsApp/Telegram/E-mail). A montagem final do DOCX — com as fotos embutidas e validação — é feita pela automação da Seção. O JSON contém os dados e as fotos; nada fica salvo em servidores.</div>
+</section>
+
+<template id="tpl-benf">
+<section class="benf" data-n="__N__">
+ <h2>Benfeitoria __N__</h2>
+ <div class="grid">
+  <div><label>Identificação (apelido)</label><input type="text" id="b__N___identificacao" placeholder="Ex.: Casa de bombas em alvenaria"></div>
+  <div><label>Código do imóvel</label><input type="text" id="b__N___codigo" placeholder="Ex.: E-031 ou D-002"></div>
+  <div style="grid-column:1/3"><label>Breve descrição</label><input type="text" id="b__N___descricao"></div>
+  <div><label>Idade aparente (anos)</label><input type="text" id="b__N___idade_aparente"></div>
+  <div><label>Idade real / ano de construção</label><input type="text" id="b__N___idade"></div>
+ </div>
+ <div class="ck"><label><input type="checkbox" id="b__N___idade_nao_conhecida"> Idade não conhecida</label></div>
+ <div class="grid">
+  <div><label>Coordenadas</label><input type="text" id="b__N___coordenadas" placeholder="lat, lon"></div>
+  <div><label>Classificação</label><select id="b__N___classificacao" onchange="outro(this)"><option value="">— em branco —</option><option>Edifício residencial</option><option>Prédio de escritórios</option><option>Hangar</option><option>Reservatório</option><option>Casa de bombas</option><option>Castelo-d'água</option><option>Casa</option><option value="Outro">Outro</option></select><input type="text" id="b__N___classificacao_outro" style="display:none"></div>
+ </div>
+ <h3>Dados físicos</h3>
+ <div class="grid3">
+  <div><label>Área principal (m²)</label><input type="text" id="b__N___area_principal"></div>
+  <div><label>Área acessória (m²)</label><input type="text" id="b__N___area_acessoria"></div>
+  <div><label>Área total (m²)</label><input type="text" id="b__N___area_total"></div>
+ </div>
+ <div class="grid">
+  <div><label>Nº de pavimentos</label><input type="text" id="b__N___pavimentos"></div>
+  <div><label>Nº de cômodos</label><input type="text" id="b__N___comodos"></div>
+  <div><label>Nº de quartos</label><input type="text" id="b__N___quartos"></div>
+  <div><label>Nº de banheiros</label><input type="text" id="b__N___banheiros"></div>
+  <div><label>Nº de salas</label><input type="text" id="b__N___salas"></div>
+  <div><label>Nº de dependências</label><input type="text" id="b__N___dependencias"></div>
+  <div><label>Nº de salões</label><input type="text" id="b__N___saloes"></div>
+  <div><label>Nº de cozinhas</label><input type="text" id="b__N___cozinhas"></div>
+ </div>
+ <h3>Dimensões (m)</h3>
+ <div class="grid">
+  <div><label>Frente (m)</label><input type="text" id="b__N___dim_frente"></div>
+  <div><label>Lateral esquerda (m)</label><input type="text" id="b__N___dim_lateral_esquerda"></div>
+  <div><label>Lateral direita (m)</label><input type="text" id="b__N___dim_lateral_direita"></div>
+  <div><label>Fundos (m)</label><input type="text" id="b__N___dim_fundos"></div>
+ </div>
+ <h3>Construção</h3>
+ <div class="grid">
+  <div><label>Estrutura</label><select id="b__N___estrutura" onchange="outro(this)"><option value="">— em branco —</option><option>Concreto</option><option>Metálica</option><option>Alvenaria</option><option>Madeira</option><option value="Outro">Outro</option></select><input type="text" id="b__N___estrutura_outro" style="display:none"></div>
+  <div><label>Cobertura</label><select id="b__N___cobertura" onchange="outro(this)"><option value="">— em branco —</option><option>Laje</option><option>Metálica</option><option>Telha cerâmica</option><option>Telha de cimento/concreto</option><option>Telha de fibrocimento</option><option value="Outro">Outro</option></select><input type="text" id="b__N___cobertura_outro" style="display:none"></div>
+  <div><label>Revestimento da fachada</label><select id="b__N___revestimento" onchange="outro(this)"><option value="">— em branco —</option><option>Reboco e pintura</option><option>Cerâmico</option><option>Mármore ou granito</option><option value="Outro">Outro</option></select><input type="text" id="b__N___revestimento_outro" style="display:none"></div>
+  <div><label>Padrão construtivo</label><select id="b__N___padrao" onchange="outro(this)"><option value="">— em branco —</option><option>Alto</option><option>Normal</option><option>Baixo</option><option value="Outro">Outro</option></select><input type="text" id="b__N___padrao_outro" style="display:none"></div>
+ </div>
+ <details class="help"><summary>Ajuda — padrão construtivo (pontos: piso, parede, teto, esquadrias, forro)</summary>
+ Alto: 12 a 15 pontos · Normal: 7 a 11 pontos · Baixo: 5 a 6 pontos. Critérios completos no arquivo "padrão construtivo". O enquadramento é sempre decisão do operador.</details>
+ <h3>Avaliação técnica (Estado de conservação por sistema)</h3>
+ <div id="b__N___avaliacao"></div>
+ <details class="help"><summary>Ajuda — significado das letras (A a I)</summary>
+ <b>A</b> Nova/ótimo: nova ou reforma geral, &lt;1 ano, só desgaste natural da pintura — 100% do custo.<br>
+ <b>B</b> Entre nova e regular/muito bom: &lt;2 anos — 99%.<br>
+ <b>C</b> Regular/bom: seminova, 2–5 anos, só pintura — 97%.<br>
+ <b>D</b> Entre regular e reparos simples/aceitável: 2–5 anos, fissuras localizadas e superficiais — 92%.<br>
+ <b>E</b> Reparos simples/regular: fissuras superficiais generalizadas, sem recuperação estrutural — 82%.<br>
+ <b>F</b> Reparos simples a importantes/sofrível: recuperação estrutural localizada — 67%.<br>
+ <b>G</b> Reparos importantes/ruim: grande parte do sistema estrutural — 47%.<br>
+ <b>H</b> Entre reparos importantes e sem valor/péssimo — 25%.<br>
+ <b>I</b> Sem valor: ruína, valor residual.<br>
+ N/A Não se aplica · N/V Não vistoriado. Tabela completa no arquivo "estado de conservação".</details>
+ <h3>Estado de conservação geral</h3>
+ <select id="b__N___conservacao_geral"><option value="">— em branco (sugestão pela média aparece na revisão) —</option><option>Nova</option><option>Nova/Regular</option><option>Regular</option><option>Regular/Reparos simples</option><option>Reparos simples</option><option>Reparos simples/Importantes</option><option>Reparos importantes</option><option>Reparos importantes/Sem valor</option></select>
+ <h3>Manifestações patológicas (marque as vistas — nunca causas)</h3>
+ <div class="scroll"><table class="man" id="b__N___manifestacoes"></table></div>
+ <label>Observações por manifestação (opcional, ex.: "ver fotos 2 e 4")</label>
+ <textarea id="b__N___man_obs" placeholder="Trincas/fissuras: fachada, fotos 1 e 3"></textarea>
+ <h3>Informações complementares</h3>
+ <textarea id="b__N___info_complementares" placeholder="Limitações, acesso comprometido, sistemas não vistoriados..."></textarea>
+ <h3>Fotografias (máx. 6)</h3>
+ <input type="file" accept="image/*" multiple onchange="addFotos(this,'b__N__')">
+ <div id="fotos_b__N__"></div>
+ <h3>Croqui da benfeitoria</h3>
+ <input type="file" accept="image/*" onchange="addCroqui(this,'b__N__')">
+ <div id="croqui_b__N__"></div>
+ <button class="mini sec" onclick="this.closest('.benf').remove()">Remover esta benfeitoria</button>
+</section>
+</template>
+
+</main>
+<div class="barra"><button onclick="gerar()">Gerar revisão</button><button onclick="baixarJson()">Baixar dados.json</button></div>
+<div id="printArea"></div>
+
+<script>
+var SVC=['Pavimentação','Iluminação pública','Rede d\'água','Limpeza pública','Coleta de lixo','Passeio','Telefone','Rede elétrica','Rede de esgoto','TV/cabo','Gás encanado','Rede pluvial','Transporte coletivo','Guias/sarjetas'];
+var MELH=['Escola','Posto de saúde','Comércio','Banco','Área de lazer','Shopping','Praia'];
+var SISTEMAS=['Estrutura','Alvenaria','Cobertura','Esquadrias','Revestimento','Pintura','Instalações elétricas','Instalações hidráulicas'];
+var LETRAS=['A','B','C','D','E','F','G','H','I','N/A','N/V'];
+var ELEMS=['ESTRUTURA','FACHADA','ESQUADRIA','PAREDE','PISO','COBERTURA','INSTALAÇÕES HIDRÁULICAS','INSTALAÇÕES ELÉTRICAS'];
+var MANS=['Deformações (deslocamento)','Concentração de água','Presença de umidade','Vazamentos','Sujidades','Formação de fungos','Presença de cupins','Mancha de ferrugem','Corrosão (perda de seção)','Trincas / fissuras','Desagregação (esfarelado)','Desplacamento (em placas)','Risco de choque elétrico','Mancha branca (eflorescência)','Danificado / quebrado','Cobrimento deficiente','Recalque','Armadura exposta','Outra manifestação'];
+var ALIAS={'gradeado':'Cerca','gradil':'Cerca','alambrado':'Cerca','tela':'Cerca','quadra total':'Quadra inteira','plana':'Plano','montanhosa':'Montanhoso','ondulada':'Ondulado'};
+var fotos={t:[],croqui_t:null}; var nBenf=0;
+document.getElementById('data').valueAsDate=new Date();
+
+// construir checkboxes de serviços/melhoramentos
+(function(){
+ var s=document.getElementById('t_servicos');
+ SVC.forEach(function(v,i){var l=document.createElement('label');l.innerHTML='<input type="checkbox" class="svc" value="'+i+'"> '+v;s.appendChild(l);});
+ var m=document.getElementById('t_melhoramentos');
+ MELH.forEach(function(v,i){var l=document.createElement('label');l.innerHTML='<input type="checkbox" class="mel" value="'+i+'"> '+v;m.appendChild(l);});
+})();
+
+function tipoMudou(){
+ var b=document.getElementById('tipo').value==='benfeitoria';
+ document.getElementById('secBenfeitorias').style.display=b?'block':'none';
+ document.getElementById('secTerreno').style.display=(b && !document.getElementById('incluirTerreno').checked)?'none':'block';
+ document.getElementById('ckIncluirT').style.display=b?'block':'none';
+}
+document.getElementById('incluirTerreno').addEventListener('change',tipoMudou);
+
+function outro(sel){
+ var box=document.getElementById(sel.id+'_outro');
+ if(box) box.style.display=sel.value==='Outro'?'block':'none';
+}
+
+// ---- fotos ----
+function addFotos(input,alvo){
+ var lista=alvo==='t'?fotos.t:null;
+ Array.prototype.forEach.call(input.files,function(f){
+  var r=new FileReader();
+  r.onload=function(e){
+   var item={nome:f.name,b64:e.target.result.split(',')[1],legenda:''};
+   if(alvo==='t'){ if(fotos.t.length>=6){alert('Máximo 6 fotos do terreno — "'+f.name+'" não foi adicionada.');return;} fotos.t.push(item); renderFotos('t'); }
+   else{ var k='fotos_'+alvo; if(!fotos[k])fotos[k]=[]; if(fotos[k].length>=6){alert('Máximo 6 fotos por benfeitoria — "'+f.name+'" não foi adicionada.');return;} fotos[k].push(item); renderFotos(alvo); }
+  };
+  r.readAsDataURL(f);
+ });
+ input.value='';
+}
+function renderFotos(alvo){
+ var arr=alvo==='t'?fotos.t:fotos['fotos_'+alvo];
+ var box=document.getElementById((alvo==='t'?'fotos_t':'fotos_'+alvo));
+ box.innerHTML='';
+ arr.forEach(function(f,i){
+  var d=document.createElement('div');d.className='foto-item';
+  d.innerHTML='<img src="data:image/jpeg;base64,'+f.b64+'"><div style="flex:1"><input type="text" placeholder="Legenda (ex.: Fachada frontal)" value="'+f.legenda.replace(/"/g,'&quot;')+'" oninput="fotos[\''+(alvo==='t'?'t':'fotos_'+alvo)+'\']['+i+'].legenda=this.value"><div style="font-size:11px;color:#888">'+f.nome+' · <a href="#" onclick="delFoto(\''+alvo+'\','+i+');return false" style="color:#b71c1c">remover</a></div></div>';
+  box.appendChild(d);
+ });
+}
+function delFoto(alvo,i){ if(alvo==='t'){fotos.t.splice(i,1);renderFotos('t');} else {fotos['fotos_'+alvo].splice(i,1);renderFotos(alvo);} }
+function addCroqui(input,alvo){
+ var f=input.files[0]; if(!f)return;
+ var r=new FileReader();
+ r.onload=function(e){
+  var item={nome:f.name,b64:e.target.result.split(',')[1]};
+  if(alvo==='t'){fotos.croqui_t=item;} else {fotos['croqui_'+alvo]=item;}
+  var box=document.getElementById('croqui_'+alvo);
+  box.innerHTML='<div class="foto-item"><img src="data:image/jpeg;base64,'+item.b64+'"><div style="flex:1"><b>Croqui anexado</b><div style="font-size:11px;color:#888">'+f.nome+' · <a href="#" onclick="delCroqui(\''+alvo+'\');return false" style="color:#b71c1c">remover</a></div></div></div>';
+ };
+ r.readAsDataURL(f); input.value='';
+}
+function delCroqui(alvo){ if(alvo==='t'){fotos.croqui_t=null;} else {fotos['croqui_'+alvo]=null;} document.getElementById('croqui_'+alvo).innerHTML=''; }
+
+// ---- benfeitorias ----
+function addBenf(){
+ nBenf++;
+ var tpl=document.getElementById('tpl-benf').innerHTML.split('__N__').join(String(nBenf));
+ document.getElementById('listaBenf').insertAdjacentHTML('beforeend',tpl);
+ var av=document.getElementById('b'+nBenf+'_avaliacao');
+ SISTEMAS.forEach(function(s,i){
+  var l=document.createElement('label');l.style.fontWeight='400';
+  l.innerHTML='<span style="display:inline-block;width:150px;font-weight:600;color:#595959">'+s+'</span> <select id="b'+nBenf+'_av_'+i+'"><option value="">—</option>'+LETRAS.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select>';
+  av.appendChild(l);
+ });
+ var tb=document.getElementById('b'+nBenf+'_manifestacoes');
+ var tr=document.createElement('tr');
+ tr.innerHTML='<th style="text-align:left">Manifestação</th>'+ELEMS.map(function(e){return '<th title="'+e+'">'+e.split(' ')[0]+'</th>'}).join('');
+ tb.appendChild(tr);
+ MANS.forEach(function(m,mi){
+  var row=document.createElement('tr');
+  row.innerHTML='<td>'+m+'</td>'+ELEMS.map(function(e,ei){return '<td><input type="checkbox" data-m="'+mi+'" data-e="'+ei+'"></td>'}).join('');
+  tb.appendChild(row);
+ });
+ alert('Benfeitoria '+nBenf+' adicionada.');
+}
+
+// ---- coleta ----
+function val(id){var e=document.getElementById(id);return e?e.value.trim():''}
+function fmtData(s){ if(!s)return ''; var p=s.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s; }
+function alias(v){ if(!v)return v; var a=ALIAS[v.toLowerCase()]; return a||v; }
+function coletarTerreno(){
+ var sel=function(id){var v=val(id); return v==='Outro'?alias(val(id+'_outro'))||'Outro':v;};
+ var t={endereco:val('t_endereco'),cidade_estado:val('t_cidade_estado'),tombo:val('t_tombo'),rip:val('t_rip'),lat:val('t_lat'),lon:val('t_lon'),
+  classificacao:sel('t_classificacao'),posicao:sel('t_posicao'),forma:sel('t_forma'),divisas:sel('t_divisas'),topografia:sel('t_topografia'),
+  ocupacao:sel('t_ocupacao'),nivel:sel('t_nivel'),solo:sel('t_solo'),zoneamento:sel('t_zoneamento'),
+  conf_frente:val('t_conf_frente'),conf_fundos:val('t_conf_fundos'),conf_lateral_esquerda:val('t_conf_lateral_esquerda'),conf_lateral_direita:val('t_conf_lateral_direita'),
+  dim_frente:val('t_dim_frente'),dim_prof_esquerda:val('t_dim_prof_esquerda'),dim_prof_direita:val('t_dim_prof_direita'),dim_fundos:val('t_dim_fundos'),
+  servicos_urbanos:Array.prototype.map.call(document.querySelectorAll('.svc:checked'),function(c){return SVC[+c.value]}),
+  melhoramentos:Array.prototype.map.call(document.querySelectorAll('.mel:checked'),function(c){return MELH[+c.value]}),
+  melhoramentos_outro:val('t_melhoramentos_outro')?val('t_melhoramentos_outro').split(',').map(function(x){return x.trim()}).filter(Boolean):[],
+  fotos:fotos.t.map(function(f){return {nome:f.nome,base64:f.b64,legenda:f.legenda}})
+ };
+ return t;
+}
+function coletarBenf(n){
+ var g=function(id){return val('b'+n+'_'+id)};
+ var b={identificacao:g('identificacao'),codigo:g('codigo'),descricao:g('descricao'),idade_aparente:g('idade_aparente'),
+  idade_nao_conhecida:document.getElementById('b'+n+'_idade_nao_conhecida').checked,idade:g('idade'),coordenadas:g('coordenadas'),
+  classificacao:g('classificacao')==='Outro'?'':g('classificacao'),classificacao_outro:g('classificacao')==='Outro'?g('classificacao_outro'):'',
+  area_principal:g('area_principal'),area_acessoria:g('area_acessoria'),area_total:g('area_total'),pavimentos:g('pavimentos'),
+  dim_frente:g('dim_frente'),dim_lateral_esquerda:g('dim_lateral_esquerda'),dim_lateral_direita:g('dim_lateral_direita'),dim_fundos:g('dim_fundos'),
+  comodos:g('comodos'),quartos:g('quartos'),banheiros:g('banheiros'),salas:g('salas'),dependencias:g('dependencias'),saloes:g('saloes'),cozinhas:g('cozinhas'),
+  estrutura:g('estrutura')==='Outro'?'':g('estrutura'),cobertura:g('cobertura')==='Outro'?'':g('cobertura'),
+  revestimento:g('revestimento')==='Outro'?'':g('revestimento'),padrao:g('padrao')==='Outro'?'':g('padrao'),
+  conservacao_geral:g('conservacao_geral'),info_complementares:g('info_complementares'),
+  avaliacao:{},manifestacoes:[],fotos:(fotos['fotos_b'+n]||[]).map(function(f){return {nome:f.nome,base64:f.b64,legenda:f.legenda}})
+ };
+ SISTEMAS.forEach(function(s,i){var v=val('b'+n+'_av_'+i); if(v)b.avaliacao[s]=v;});
+ var obs=g('man_obs');
+ var rows=document.querySelectorAll('#b'+n+'_manifestacoes input[type=checkbox]:checked');
+ var porMan={};
+ rows.forEach(function(c){var m=+c.dataset.m,e=+c.dataset.e;(porMan[m]=porMan[m]||[]).push(ELEMS[e]);});
+ Object.keys(porMan).forEach(function(m){ porMan[m].forEach(function(e){ b.manifestacoes.push({manifestacao:MANS[m],elemento:e}); }); });
+ if(obs.trim() && b.manifestacoes.length){b.manifestacoes[b.manifestacoes.length-1].observacao=obs.trim();}
+ else if(obs.trim()){b.manifestacoes.push({manifestacao:'Outra manifestação',elemento:'',observacao:obs.trim()});}
+ return b;
+}
+function mediaGeral(av){
+ var nums=[]; SISTEMAS.forEach(function(s){var v=av[s]; if(v&&v!=='N/A'&&v!=='N/V'){nums.push('ABCDEFGHI'.indexOf(v)+1);} });
+ if(!nums.length)return null;
+ var m=nums.reduce(function(a,b){return a+b},0)/nums.length;
+ return 'ABCDEFGHI'[Math.round(m)-1];
+}
+
+// ---- revisão / geração ----
+var DOC=null;
+function gerar(){
+ var tipo=document.getElementById('tipo').value;
+ var d={om:val('om')||'SERINFRA-NT',data:fmtData(val('data')),tipo:tipo,terreno:null,benfeitorias:[],croqui_terreno:null,croqui_benfeitoria:null};
+ var erros=[];
+ if(!val('data'))erros.push('Data do cabeçalho');
+ if(tipo==='terreno'){ d.terreno=coletarTerreno(); if(!d.terreno.tombo)erros.push('Tombo do terreno (obrigatório)'); d.croqui_terreno=fotos.croqui_t?{nome:fotos.croqui_t.nome,base64:fotos.croqui_t.b64}:null; }
+ else{
+  if(document.getElementById('incluirTerreno').checked){ d.terreno=coletarTerreno(); if(!d.terreno.tombo)erros.push('Tombo do terreno (obrigatório)'); d.croqui_terreno=fotos.croqui_t?{nome:fotos.croqui_t.nome,base64:fotos.croqui_t.b64}:null; }
+  for(var n=1;n<=nBenf;n++){ var b=coletarBenf(n); if(!b.identificacao&&!b.codigo){continue;} b.fotos.forEach(function(f,i){if(!f.legenda){}}); d.benfeitorias.push(b); d.croqui_benfeitoria=fotos['croqui_b'+n]?{nome:fotos['croqui_b'+n].nome,base64:fotos['croqui_b'+n].b64}:null; }
+  if(!d.benfeitorias.length)erros.push('Ao menos uma benfeitoria (identificação ou código)');
+ }
+ DOC=d;
+ // revisão visual
+ var html='';
+ if(erros.length)html+='<div class="help" style="background:#fdeaea;border-color:#e57373"><b>Corrija antes de enviar:</b><br>• '+erros.join('<br>• ')+'</div>';
+ else html+='<div class="help" style="background:#e8f5e9;border-color:#81c784"><b>Pronto para gerar.</b> Confira abaixo e baixe o dados.json.</div>';
+ function linha(k,v){return '<div><b>'+k+':</b> '+(v&&String(v).trim()?v:'<span class="pend">(em branco — pendência)</span>')+'</div>';}
+ if(d.terreno){ var t=d.terreno;
+  html+='<div class="rev-bloco"><b>TERRENO</b>'+linha('Endereço',t.endereco)+linha('Cidade/Estado',t.cidade_estado)+linha('Tombo',t.tombo)+linha('RIP',t.rip)+linha('Coordenadas',t.lat&&t.lon?t.lat+', '+t.lon:'')+linha('Classificação',t.classificacao)+linha('Posição',t.posicao)+linha('Forma',t.forma)+linha('Divisas',t.divisas)+linha('Topografia',t.topografia)+linha('Ocupação',t.ocupacao)+linha('Nível',t.nivel)+linha('Solo',t.solo)+linha('Serviços urbanos',t.servicos_urbanos.join(', ')+((t.melhoramentos_outro&&false)?'':''))+linha('Melhoramentos',t.melhoramentos.join(', ')+(t.melhoramentos_outro.length?' + '+t.melhoramentos_outro.join(', '):''))+linha('Zoneamento',t.zoneamento)+linha('Confrontantes',t.conf_frente+' | '+t.conf_fundos+' | '+t.conf_lateral_esquerda+' | '+t.conf_lateral_direita)+linha('Dimensões',t.dim_frente+' | '+t.dim_prof_esquerda+' | '+t.dim_prof_direita+' | '+t.dim_fundos)+linha('Fotos',t.fotos.length+' anexada(s)')+'</div>';
+ }
+ d.benfeitorias.forEach(function(b,i){
+  var n=i+1; var avTxt=SISTEMAS.map(function(s){return s+': '+(b.avaliacao[s]||'<span class="pend">(em branco)</span>')}).join(' · ');
+  var sug=mediaGeral(b.avaliacao);
+  html+='<div class="rev-bloco"><b>BENFEITORIA '+n+'</b>'+linha('Identificação',b.identificacao)+linha('Código',b.codigo)+linha('Descrição',b.descricao)+linha('Idade',b.idade_nao_conhecida?'não conhecida':b.idade_aparente||b.idade||'')+linha('Coordenadas',b.coordenadas)+linha('Classificação',b.classificacao||b.classificacao_outro)+linha('Áreas',b.area_principal+' / '+b.area_acessoria+' / '+b.area_total)+linha('Pavimentos/cômodos',b.pavimentos+' / '+b.comodos)+linha('Dimensões',b.dim_frente+' | '+b.dim_lateral_esquerda+' | '+b.dim_lateral_direita+' | '+b.dim_fundos)+linha('Estrutura/Cobertura/Revestimento/Padrão',b.estrutura+' · '+b.cobertura+' · '+b.revestimento+' · '+b.padrao)+'<div style="margin:5px 0"><b>Avaliação:</b> '+avTxt+'</div>'+(sug?'<div class="dica">Sugestão pela média dos sistemas: <b>'+sug+'</b> — confira/ajuste o "Estado de conservação geral" acima se concordar.</div>':'')+linha('Estado geral',b.conservacao_geral)+linha('Manifestações',b.manifestacoes.map(function(m){return m.manifestacao+'→'+m.elemento+(m.observacao?' ('+m.observacao+')':'')}).join('; ')||'nenhuma registrada')+'<div><b>Fotos:</b> '+b.fotos.length+' anexada(s)</div>'+linha('Info complementares',b.info_complementares)+'</div>';
+ });
+ var totFotos=(d.terreno?d.terreno.fotos.length:0)+d.benfeitorias.reduce(function(a,b){return a+b.fotos.length},0);
+ html+='<div class="rev-bloco"><b>RESUMO</b> — OM: '+d.om+' · Data: '+d.data+' · Tipo: '+d.tipo+' · Fotos: '+totFotos+'<br><span class="dica" style="display:block;margin-top:6px">A montagem final do DOCX (fotos embutidas nos slots, validação e paginação) é feita pela Seção de Patrimônio a partir deste JSON.</span></div>';
+ document.getElementById('revisao').innerHTML=html;
+ document.getElementById('revisao').scrollIntoView({behavior:'smooth'});
+}
+function baixarJson(){
+ if(!DOC){alert('Gere a revisão primeiro.');return;}
+ if(!document.getElementById('autorizo').checked && document.getElementById('revisao').textContent.indexOf('pendência')!==-1){
+  if(!confirm('Há campos em branco (pendências). Autoriza o envio assim mesmo? — "OK" autoriza; "Cancelar" volta para preencher.'))return;
+  document.getElementById('autorizo').checked=true;
+ }
+ var nome='dados_vistoria_'+((DOC.terreno&&DOC.terreno.tombo)?DOC.terreno.tombo.replace(/[^\w.-]/g,''):'rvi')+'.json';
+ var blob=new Blob([JSON.stringify(DOC,null,2)],{type:'application/json'});
+ var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;a.click();
+ alert('JSON baixado: '+nome+'\n\nEnvie este arquivo para a Chefe da Seção de Patrimônio (WhatsApp/Telegram). A montagem final do DOCX com as fotos é feita pela automação da Seção.');
+}
+function imprimir(){
+ if(!DOC){alert('Gere a revisão primeiro.');return;}
+ var pa=document.getElementById('printArea');
+ pa.innerHTML='<h2 style="color:#1f4e79">RVI — Resumo da vistoria</h2><p>'+DOC.om+' · '+DOC.data+' · Tipo: '+DOC.tipo+'</p>'+document.getElementById('revisao').innerHTML;
+ window.print();
+}
+</script>
+</body>
+</html>
